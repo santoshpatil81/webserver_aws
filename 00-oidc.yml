@@ -1,0 +1,110 @@
+---
+#============================================================================================================
+# Description : Platform Engineering Coding Challenge - Setup identity provider and roles for GitHub actions
+#============================================================================================================
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Platform Engineering Coding Challenge"
+
+# Parameters
+
+Parameters:
+
+  OidcProviderEndpoint:
+    Default: "https://token.actions.githubusercontent.com"
+    Description: Github OIDC URL.
+    Type: String
+  GitHubOIDCThumbprint:
+    Default: "6938fd4d98bab03faadb97b34396831e3780aea1"
+    Description: Github OIDC Thumbprint.
+    Type: String
+  OIDCAudience:
+    Default: "sts.amazonaws.com"
+    Description: Audience supplied to configure-aws-credentials.
+    Type: String
+  AccountID:
+    Default: "619170903429"
+    Description: AWS Account ID.
+    Type: String
+  GitHubRepoName:
+    Default: "santoshpatil81/webserver_aws"
+    Description: Github repo to allow deployment.
+    Type: String
+
+Resources:
+
+  GithubOidc:
+    Type: AWS::IAM::OIDCProvider
+    DeletionPolicy: Retain
+    Properties:
+      Url: !Sub "${OidcProviderEndpoint}"
+      ThumbprintList:
+        - !Sub ${GitHubOIDCThumbprint}
+      ClientIdList:
+        - !Sub ${OIDCAudience}
+
+  AssumeGitHubActionsDeployerRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    Properties:
+      RoleName: AssumeGitHubActionsDeployerRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Principal:
+              Federated: !Sub "arn:aws:iam::${AccountID}:oidc-provider/token.actions.githubusercontent.com"
+            Effect: "Allow"
+            Condition:
+              ForAnyValue:StringLike:
+                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubRepoName}:*"
+              StringEquals:
+                "token.actions.githubusercontent.com:aud": !Sub ${OIDCAudience}
+            Action: "sts:AssumeRoleWithWebIdentity"
+
+  AssumeGitHubActionsDeployerRolePolicy:
+    Type: AWS::IAM::Policy
+    DeletionPolicy: Retain
+    Properties:
+      PolicyName: AssumeGitHubActionsDeployerRolePolicy
+      Roles:
+        - !Ref AssumeGitHubActionsDeployerRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+              - "sts:TagSession"
+            Resource:
+              - !Sub "arn:aws:iam::${AccountID}:role/GitHubActionsDeployerRole"
+
+  GitHubActionsDeployerRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    Properties:
+      RoleName: GitHubActionsDeployerRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Principal:
+              AWS: !Sub "arn:aws:iam::${AccountID}:role/AssumeGitHubActionsDeployerRole"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+              - "sts:TagSession"
+
+  GitHubActionsDeployerRolePolicy:
+    Type: AWS::IAM::Policy
+    DeletionPolicy: Retain
+    Properties:
+      PolicyName: GitHubActionsDeployerRolePolicy
+      Roles:
+        - !Ref GitHubActionsDeployerRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "s3:CreateBucket"
+            Resource: "*"
+
