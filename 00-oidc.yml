@@ -33,15 +33,15 @@ Parameters:
 
 Resources:
 
-  GithubOidc:
-    Type: AWS::IAM::OIDCProvider
-    DeletionPolicy: Retain
-    Properties:
-      Url: !Sub "${OidcProviderEndpoint}"
-      ThumbprintList:
-        - !Sub ${GitHubOIDCThumbprint}
-      ClientIdList:
-        - !Sub ${OIDCAudience}
+  # GithubOidc:
+  #   Type: AWS::IAM::OIDCProvider
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     Url: !Sub "${OidcProviderEndpoint}"
+  #     ThumbprintList:
+  #       - !Sub ${GitHubOIDCThumbprint}
+  #     ClientIdList:
+  #       - !Sub ${OIDCAudience}
 
   AssumeGitHubActionsDeployerRole:
     Type: AWS::IAM::Role
@@ -56,7 +56,7 @@ Resources:
             Effect: "Allow"
             Condition:
               ForAnyValue:StringLike:
-                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubRepoName}:*"
+                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubRepoName}:ref:refs/heads/main"
               StringEquals:
                 "token.actions.githubusercontent.com:aud": !Sub ${OIDCAudience}
             Action: "sts:AssumeRoleWithWebIdentity"
@@ -77,6 +77,7 @@ Resources:
               - "sts:TagSession"
             Resource:
               - !Sub "arn:aws:iam::${AccountID}:role/GitHubActionsDeployerRole"
+    DependsOn: AssumeGitHubActionsDeployerRole
 
   GitHubActionsDeployerRole:
     Type: AWS::IAM::Role
@@ -92,6 +93,7 @@ Resources:
             Action:
               - "sts:AssumeRole"
               - "sts:TagSession"
+    DependsOn: AssumeGitHubActionsDeployerRole
 
   GitHubActionsDeployerRolePolicy:
     Type: AWS::IAM::Policy
@@ -105,6 +107,6 @@ Resources:
         Statement:
           - Effect: "Allow"
             Action:
-              - "s3:CreateBucket"
+              - "*"
             Resource: "*"
-
+    DependsOn: GitHubActionsDeployerRole
