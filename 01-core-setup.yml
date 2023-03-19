@@ -610,16 +610,208 @@ Resources:
       ToPort: "80"
       CidrIp: !Sub "${RemoteAccessCIDR}"
 
-  WebserverSGIngressTcp8080:
+  WebserverSGIngressTcp443:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      Description: "Port 8080"
+      Description: "HTTP Port"
       GroupId:
         Ref: WebserverSG
       IpProtocol: tcp
-      FromPort: "8080"
-      ToPort: "8080"
+      FromPort: "443"
+      ToPort: "443"
       CidrIp: !Sub "${RemoteAccessCIDR}"
+
+  WebServerKeyPair:
+    Type: 'AWS::EC2::KeyPair'
+    Properties:
+      KeyName: WebServerKeyPair
+
+  ElasticLoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      CrossZone: 'true'
+      Listeners:
+      - LoadBalancerPort: '80'
+        InstancePort: '80'
+        Protocol: HTTP
+      HealthCheck:
+        Target: HTTP:80/
+        HealthyThreshold: '3'
+        UnhealthyThreshold: '5'
+        Interval: '30'
+        Timeout: '5'
+      Subnets:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+
+  WebServerGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    # CreationPolicy:
+    #   ResourceSignal:
+    #     Timeout: PT15M
+    #     Count: '1'
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: '1'
+        PauseTime: PT15M
+        WaitOnResourceSignals: 'true'
+    Properties:
+      VPCZoneIdentifier:
+      - !Ref PrivateSubnetA
+      - !Ref PrivateSubnetB
+      - !Ref PrivateSubnetC
+      LaunchConfigurationName: !Ref 'LaunchConfig'
+      MinSize: '0'
+      MaxSize: '1'
+      DesiredCapacity: '1'
+      LoadBalancerNames: [!Ref 'ElasticLoadBalancer']
+
+  WebServerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref 'DescribeHealthRole']
+  DescribeHealthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ec2.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: describe-instance-health-policy
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['elasticloadbalancing:DescribeInstanceHealth']
+            Resource: '*'
+            
+  # WebServerInstance:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     InstanceType: t2.micro
+  #     IamInstanceProfile: !Ref 'WebServerInstanceProfile'
+  #     ImageId: ami-018c0195987eb63ee
+  #     KeyName: !Ref WebServerKeyPair
+  #     NetworkInterfaces:
+  #       - GroupSet:
+  #           - !Ref WebserverSG
+  #         AssociatePublicIpAddress: false
+  #         DeviceIndex: '0'
+  #         DeleteOnTermination: 'true'
+  #         SubnetId: !Ref PrivateSubnetA
+    # CreationPolicy:
+    #   ResourceSignal:
+    #     Timeout: PT15M
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          full_install:
+            - install_cfn
+            - install_webserver
+            - copy_s3_file
+            - verify_instance_health
+        install_cfn:
+          files:
+            /etc/cfn/cfn-hup.conf:
+              content: !Join ['', ['[main]
+
+                    ', stack=, !Ref 'AWS::StackId', '
+
+                    ', region=, !Ref 'AWS::Region', '
+
+                    ']]
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Join ['', ['[cfn-auto-reloader-hook]
+
+                    ', 'triggers=post.update
+
+                    ', 'path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init
+
+                    ', 'action=/opt/aws/bin/cfn-init -v ', '         --stack ', !Ref 'AWS::StackName',
+                  '         --resource LaunchConfig ', '         --configsets
+                    full_install ', '         --region ', !Ref 'AWS::Region', '
+
+                    ', 'runas=root
+
+                    ']]
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files: [/etc/cfn/cfn-hup.conf, /etc/cfn/hooks.d/cfn-auto-reloader.conf]
+        install_webserver:
+          packages:
+            yum:
+              httpd: []
+          files:
+            "/var/www/html/index.html":
+              content: |
+                Hello world!
+              mode: 000644
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              httpd:
+                enabled: true
+                ensureRunning: true
+        copy_s3_file:
+          commands:
+            01_copy_file_from_s3_bucket:
+              command: !Join
+                - ''
+                - - 'aws s3 cp '
+                  - 's3://belong-coding-challenge/belong-test.html'
+                  - '/var/www/html/index.html'
+        verify_instance_health:
+          commands:
+            ELBHealthCheck:
+              command: !Join ['', ['until [ "$state" == "\"InService\"" ]; do ', '  state=$(aws
+                    --region ', !Ref 'AWS::Region', ' elb describe-instance-health ',
+                  '              --load-balancer-name ', !Ref 'ElasticLoadBalancer',
+                  '              --instances $(curl -s http://169.254.169.254/latest/meta-data/instance-id) ',
+                  '              --query InstanceStates[0].State); ', '  sleep 10; ',
+                  done]]
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-018c0195987eb63ee
+      KeyName: !Ref WebServerKeyPair
+      SecurityGroups:
+        - !Ref WebserverSG
+      IamInstanceProfile: !Ref 'WebServerInstanceProfile'
+      UserData: !Base64
+        Fn::Join:
+        - ''
+        - ['#!/bin/bash -xe
+
+            ', 'yum update -y aws-cfn-bootstrap
+
+            ', '/opt/aws/bin/cfn-init -v ', '         --stack ', !Ref 'AWS::StackName',
+          '         --resource LaunchConfig ', '         --configsets full_install ',
+          '         --region ', !Ref 'AWS::Region', '
+
+            ', '/opt/aws/bin/cfn-signal -e $? ', '         --stack ', !Ref 'AWS::StackName',
+          '         --resource WebServerGroup ', '         --region ', !Ref 'AWS::Region',
+          '
+            ']
+      # UserData: !Base64
+      #   'Fn::Sub': |
+      #     #!/bin/bash -xe
+      #     yum update -y aws-cfn-bootstrap
+      #     /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource WebServerInstance --configsets setup --region ${AWS::Region}
+      #     /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WebServerInstance --region ${AWS::Region}
 
 Outputs:
 
@@ -719,3 +911,7 @@ Outputs:
       Ref: NATGatewayEIPC
     Export:
       Name: !Sub '${Environment}-NAT-gateway-elastic-IP-C'
+  # PublicDNS :
+  #   Value: !GetAtt
+  #     - WebServerInstance
+  #     - PublicDnsName
