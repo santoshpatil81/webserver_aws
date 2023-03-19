@@ -91,7 +91,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-nacl"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PermitAnyFromPublic:
@@ -121,7 +121,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-nacl"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PermitAnyFromPrivate:
@@ -160,7 +160,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-a"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PublicSubnetANACLAssociation:
@@ -192,7 +192,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-b"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PublicSubnetBNACLAssociation:
@@ -224,7 +224,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-c"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PublicSubnetCNACLAssociation:
@@ -258,7 +258,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-a"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PrivateSubnetANACLAssociation:
@@ -290,7 +290,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-b"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PrivateSubnetBNACLAssociation:
@@ -322,7 +322,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-c"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PrivateSubnetCNACLAssociation:
@@ -355,7 +355,7 @@ Resources:
     Properties:
       InternetGatewayId:
         Ref: InternetGateway
-      VpcId:
+      VPCID:
         Ref: VPC
 
   NATGatewayEIPA:
@@ -463,7 +463,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-a"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PublicDefaultRouteA:
@@ -482,7 +482,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-b"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PublicDefaultRouteB:
@@ -501,7 +501,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-c"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PublicDefaultRouteC:
@@ -520,7 +520,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-a"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PrivateRouteTableB:
@@ -529,7 +529,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-b"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   PrivateRouteTableC:
@@ -538,7 +538,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-c"
-      VpcId:
+      VPCID:
         Ref: VPC
 
   # Enable VPC flow logs and create S3 bucket to store logs
@@ -551,7 +551,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${VPCFlowLogsS3Bucket}"
-        - Key: VpcId
+        - Key: VPCID
           Value: !Ref VPC
 
   FlowLog:
@@ -572,7 +572,7 @@ Resources:
     Properties:
       GroupName: !Sub "${Environment}-webserver-sg"
       GroupDescription: "Webserver Security Group"
-      VpcId: !Ref VPC
+      VPCID: !Ref VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-webserver-sg"
@@ -610,3 +610,97 @@ Resources:
       ToPort: "8080"
       CidrIp: !Sub "${RemoteAccessCIDR}"
 
+Outputs:
+
+  VPCID:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${Environment}-vpc-id'
+  VPCRegion:
+    Value: !Ref AWS::Region
+    Export:
+      Name: !Sub '${Environment}-vpc-region'
+  VPCCIDRBlock:
+    Value: !Sub '${VPCCIDR}'
+    Export:
+      Name: !Sub '${Environment}-vpc-CIDR-block'
+  PublicSubnetA:
+    Value:
+      Ref: PublicSubnetA
+    Export:
+      Name: !Sub '${Environment}-public-sn-a'
+  PublicSubnetB:
+    Value:
+      Ref: PublicSubnetB
+    Export:
+      Name: !Sub '${Environment}-public-sn-b'
+  PublicSubnetC:
+    Value:
+      Ref: PublicSubnetC
+    Export:
+      Name: !Sub '${Environment}-public-sn-c'
+  PrivateSubnetA:
+    Value:
+      Ref: PrivateSubnetA
+    Export:
+      Name: !Sub '${Environment}-private-sn-a'
+  PrivateSubnetB:
+    Value:
+      Ref: PrivateSubnetB
+    Export:
+      Name: !Sub '${Environment}-private-sn-b'
+  PrivateSubnetC:
+    Value:
+      Ref: PrivateSubnetC
+    Export:
+      Name: !Sub '${Environment}-private-sn-c'
+  PublicRouteTableA:
+    Value:
+      Ref: PublicRouteTableA
+    Export:
+      Name: !Sub '${Environment}-public-rt-a'
+  PublicRouteTableB:
+    Value:
+      Ref: PublicRouteTableB
+    Export:
+      Name: !Sub '${Environment}-public-rt-b'
+  PublicRouteTableC:
+    Value:
+      Ref: PublicRouteTableC
+    Export:
+      Name: !Sub '${Environment}-public-rt-c'
+  PrivateRouteTableA:
+    Value:
+      Ref: PrivateRouteTableA
+    Export:
+      Name: !Sub '${Environment}-private-rt-a'
+  PrivateRouteTableB:
+    Value:
+      Ref: PrivateRouteTableB
+    Export:
+      Name: !Sub '${Environment}-private-rt-b'
+  PrivateRouteTableC:
+    Value:
+      Ref: PrivateRouteTableC
+    Export:
+      Name: !Sub '${Environment}-private-rt-c'
+  VPCFlowLogsS3BucketName:
+    Value:
+      Ref: VPCFlowLogsS3BucketObject
+    Export:
+      Name: !Sub '${Environment}-VPC-Flowlogs-s3-bucket-name'
+  NATGatewayElasticIPA:
+    Value:
+      Ref: NATGatewayEIPA
+    Export:
+      Name: !Sub '${Environment}-NAT-gateway-elastic-IP-A'
+  NATGatewayElasticIPB:
+    Value:
+      Ref: NATGatewayEIPB
+    Export:
+      Name: !Sub '${Environment}-NAT-gateway-elastic-IP-B'
+  NATGatewayElasticIPC:
+    Value:
+      Ref: NATGatewayEIPC
+    Export:
+      Name: !Sub '${Environment}-NAT-gateway-elastic-IP-C'
