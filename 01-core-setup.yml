@@ -20,7 +20,7 @@ Parameters:
   NumberOfNATGateways:
     Description: How many NAT Gateways should be configured
     Type: String
-    Default: "0"
+    Default: "1"
     AllowedValues:
       - "0"
       - "1"
@@ -30,6 +30,13 @@ Parameters:
     Description: Bucket name for Flow Logs
     Default: "vpc-flow-logs-bucket-santosh-619170903429"
     Type: String
+  VPCFlowLogsSwitch:
+    Description: Variable to control if we should enable VPC Flow Logs
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
   VPCFlowLogsLogDestinationType:
     Description: Flow Log Type
     Type: String
@@ -66,7 +73,11 @@ Conditions:
     !And [Condition: IsNATAEnabled, !Not [Condition: IsNATBEnabled]]
   IsNATARouteableFromC:
     !And [Condition: IsNATAEnabled, !Not [Condition: IsNATCEnabled]]
-  EnableVPCFlowLogs: !Not [!Equals [!Ref VPCFlowLogsLogDestinationType, ""]]
+  EnableVPCFlowLogs:
+    !And [
+      !Not [!Equals [!Ref VPCFlowLogsLogDestinationType, ""]],
+      !Equals [!Ref VPCFlowLogsSwitch, "true"],
+    ]
 
 # Resources
 
@@ -91,7 +102,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-nacl"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PermitAnyFromPublic:
@@ -121,7 +132,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-nacl"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PermitAnyFromPrivate:
@@ -160,7 +171,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-a"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PublicSubnetANACLAssociation:
@@ -192,7 +203,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-b"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PublicSubnetBNACLAssociation:
@@ -224,7 +235,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-c"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PublicSubnetCNACLAssociation:
@@ -258,7 +269,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-a"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PrivateSubnetANACLAssociation:
@@ -290,7 +301,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-b"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PrivateSubnetBNACLAssociation:
@@ -322,7 +333,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-c"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PrivateSubnetCNACLAssociation:
@@ -355,7 +366,7 @@ Resources:
     Properties:
       InternetGatewayId:
         Ref: InternetGateway
-      VPCID:
+      VpcId:
         Ref: VPC
 
   NATGatewayEIPA:
@@ -463,7 +474,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-a"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PublicDefaultRouteA:
@@ -482,7 +493,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-b"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PublicDefaultRouteB:
@@ -501,7 +512,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-c"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PublicDefaultRouteC:
@@ -520,7 +531,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-a"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PrivateRouteTableB:
@@ -529,7 +540,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-b"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   PrivateRouteTableC:
@@ -538,7 +549,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-c"
-      VPCID:
+      VpcId:
         Ref: VPC
 
   # Enable VPC flow logs and create S3 bucket to store logs
@@ -551,7 +562,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${VPCFlowLogsS3Bucket}"
-        - Key: VPCID
+        - Key: VpcId
           Value: !Ref VPC
 
   FlowLog:
@@ -572,7 +583,7 @@ Resources:
     Properties:
       GroupName: !Sub "${Environment}-webserver-sg"
       GroupDescription: "Webserver Security Group"
-      VPCID: !Ref VPC
+      VpcId: !Ref VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-webserver-sg"
@@ -612,7 +623,7 @@ Resources:
 
 Outputs:
 
-  VPCID:
+  VpcId:
     Value: !Ref VPC
     Export:
       Name: !Sub '${Environment}-vpc-id'
@@ -685,21 +696,25 @@ Outputs:
     Export:
       Name: !Sub '${Environment}-private-rt-c'
   VPCFlowLogsS3BucketName:
+    Condition: EnableVPCFlowLogs
     Value:
       Ref: VPCFlowLogsS3BucketObject
     Export:
       Name: !Sub '${Environment}-VPC-Flowlogs-s3-bucket-name'
-  NATGatewayElasticIPA:
+  NATGatewayEIPA:
+    Condition: IsNATAEnabled
     Value:
       Ref: NATGatewayEIPA
     Export:
       Name: !Sub '${Environment}-NAT-gateway-elastic-IP-A'
-  NATGatewayElasticIPB:
+  NATGatewayEIPB:
+    Condition: IsNATBEnabled
     Value:
       Ref: NATGatewayEIPB
     Export:
       Name: !Sub '${Environment}-NAT-gateway-elastic-IP-B'
-  NATGatewayElasticIPC:
+  NATGatewayEIPC:
+    Condition: IsNATCEnabled
     Value:
       Ref: NATGatewayEIPC
     Export:
