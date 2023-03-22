@@ -1,7 +1,7 @@
 ---
-#============================================================================================================
-# Description : Platform Engineering Coding Challenge - Setup identity provider and roles for GitHub actions
-#============================================================================================================
+#================================================================================================================
+# Description : Platform Engineering Coding Challenge - Setup identity provider and IAM roles for GitHub actions
+#================================================================================================================
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Platform Engineering Coding Challenge"

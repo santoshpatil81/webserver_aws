@@ -1,9 +1,11 @@
-name: Deploy changes to Development
+name: Deploy OIDC and IAM changes to Development
 
 on:
   push:
     branches:
       - 'main'
+    paths:
+    - oidc_IAM/**
 
 jobs:
   Deploy:
@@ -48,7 +50,7 @@ jobs:
       - name: CFN Lint for the cloudformation template
         uses: scottbrenner/cfn-lint-action@v2
         with:
-          command: cfn-lint -t ./*.yml
+          command: cfn-lint -t ./oidc_IAM/setup.yml
 
       - name: Fetch AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -67,17 +69,10 @@ jobs:
           role-to-assume: arn:aws:iam::619170903429:role/GitHubActionsDeployerRole
           role-duration-seconds: 1200
 
-      # - name: Deploy IAM roles
-      #   id: iam-roles
-      #   uses: aws-actions/aws-cloudformation-github-deploy@v1.2.0
-      #   with:
-      #     name:  iam-roles
-      #     template: 00-oidc.yml
-      #     capabilities: CAPABILITY_NAMED_IAM
-
-      - name: Deploy core networking - IGW, VPC, Subnets, SG etc
-        id: core
+      - name: Deploy OIDC and IAM roles
+        id: github-oidc-iam
         uses: aws-actions/aws-cloudformation-github-deploy@v1.2.0
         with:
-          name:  core
-          template: 01-core-setup.yml
+          name: github-oidc-iam
+          template: ./oidc_IAM/setup.yml
+          capabilities: CAPABILITY_NAMED_IAM

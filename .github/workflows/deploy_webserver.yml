@@ -1,0 +1,77 @@
+name: Deploy core networking and webserver changes to Development
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+    - core_networking_webserver/**
+
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write # Allow job to get access to GitHub token
+      contents: read  # Allow job to access repo contents
+
+    steps:
+
+      # - name: Check user for team affiliation
+      #   uses: tspascoal/get-user-teams-membership@v2
+      #   id: checkTeamAffiliation
+      #   with:
+      #     GITHUB_TOKEN: ${{ secrets.PAT }}
+      #     username: ${{ github.actor }}
+      #     team: Dev-Deployers
+
+      # - name: Stop workflow if user is not a member of the Deployers Team
+      #   if: ${{ steps.checkTeamAffiliation.outputs.isTeamMember == 'false' }}
+      #   run: |
+      #     echo "User does not have the necessary permissions to run this job."
+      #     exit 1
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      # - name: Checkout actions-oidc-debugger
+      #   uses: actions/checkout@v3
+      #   with:
+      #     repository: github/actions-oidc-debugger
+      #     ref: main
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     path: ./.github/actions/actions-oidc-debugger
+
+      # - name: Debug OIDC Claims
+      #   uses: ./.github/actions/actions-oidc-debugger
+      #   with:
+      #     audience: sts.amazonaws.com
+
+      - name: CFN Lint for the cloudformation template
+        uses: scottbrenner/cfn-lint-action@v2
+        with:
+          command: cfn-lint -t ./core_networking_webserver/setup.yml
+
+      - name: Fetch AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: ap-southeast-2
+          role-to-assume: arn:aws:iam::619170903429:role/AssumeGitHubActionsDeployerRole
+          role-duration-seconds: 1200
+
+      - name: Assume role into AWS account
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: ap-southeast-2
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+          role-to-assume: arn:aws:iam::619170903429:role/GitHubActionsDeployerRole
+          role-duration-seconds: 1200
+
+      - name: Deploy core networking (IGW, VPC, Subnets, SG, ELB, ASG etc) and create webserver
+        id: core-networking-webserver
+        uses: aws-actions/aws-cloudformation-github-deploy@v1.2.0
+        with:
+          name: core-networking-webserver
+          template: ./core_networking_webserver/setup.yml

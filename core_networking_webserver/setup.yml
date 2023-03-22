@@ -1,6 +1,6 @@
 ---
 #====================================================================================================
-# Description : Platform Engineering Coding Challenge - Setup core networking
+# Description : Platform Engineering Coding Challenge - Setup core networking and webserver
 #====================================================================================================
 
 AWSTemplateFormatVersion: "2010-09-09"
@@ -144,7 +144,6 @@ Resources:
           Value: !Ref VPC
         - Key: env
           Value: 'dev'
-
 
   PermitAnyFromPrivate:
     Type: AWS::EC2::NetworkAclEntry
@@ -723,6 +722,8 @@ Resources:
       ToPort: "443"
       CidrIp: !Sub "${RemoteAccessCIDR}"
 
+  # Create Key-pair
+
   WebServerKeyPair:
     Type: 'AWS::EC2::KeyPair'
     Properties:
@@ -732,6 +733,8 @@ Resources:
           Value: !Ref VPC
         - Key: env
           Value: 'dev'
+
+  # Create ELB
 
   ElasticLoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
@@ -756,6 +759,8 @@ Resources:
           Value: !Ref VPC
         - Key: env
           Value: 'dev'
+
+  # Create ASG
 
   WebServerGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -782,7 +787,9 @@ Resources:
         - Key: env
           PropagateAtLaunch: true
           Value: 'dev'
-  
+
+  # Create ASG
+
   WebServerInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -810,24 +817,9 @@ Resources:
           Value: !Ref VPC
         - Key: env
           Value: 'dev'
-            
-  # WebServerInstance:
-  #   Type: AWS::EC2::Instance
-  #   Properties:
-  #     InstanceType: t2.micro
-  #     IamInstanceProfile: !Ref 'WebServerInstanceProfile'
-  #     ImageId: ami-018c0195987eb63ee
-  #     KeyName: !Ref WebServerKeyPair
-  #     NetworkInterfaces:
-  #       - GroupSet:
-  #           - !Ref WebserverSG
-  #         AssociatePublicIpAddress: false
-  #         DeviceIndex: '0'
-  #         DeleteOnTermination: 'true'
-  #         SubnetId: !Ref PrivateSubnetA
-    # CreationPolicy:
-    #   ResourceSignal:
-    #     Timeout: PT15M
+
+  # Create LaunchConfig
+
   LaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
@@ -933,6 +925,8 @@ Resources:
           '         --resource WebServerGroup ', '         --region ', !Ref 'AWS::Region',
           '
             ']
+
+# Outputs
 
 Outputs:
 
