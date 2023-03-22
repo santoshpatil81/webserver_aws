@@ -93,17 +93,23 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-vpc"
+        - Key: env
+          Value: 'dev'
 
   # Create NACLs to allow external traffic
 
   PublicNACL:
     Type: AWS::EC2::NetworkAcl
     Properties:
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-nacl"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PermitAnyFromPublic:
     Type: AWS::EC2::NetworkAclEntry
@@ -129,11 +135,16 @@ Resources:
   PrivateNACL:
     Type: AWS::EC2::NetworkAcl
     Properties:
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-nacl"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
+
 
   PermitAnyFromPrivate:
     Type: AWS::EC2::NetworkAclEntry
@@ -168,12 +179,16 @@ Resources:
               Ref: AWS::Region
       CidrBlock:
         !Select [0, !Cidr [!Sub "${VPCCIDR}", 12, !Sub "${VPCSubnetMask}"]]
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-a"
-      VpcId:
-        Ref: VPC
-
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
+  
   PublicSubnetANACLAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
     Properties:
@@ -200,11 +215,15 @@ Resources:
               Ref: AWS::Region
       CidrBlock:
         !Select [1, !Cidr [!Sub "${VPCCIDR}", 12, !Sub "${VPCSubnetMask}"]]
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-b"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PublicSubnetBNACLAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
@@ -232,11 +251,15 @@ Resources:
               Ref: AWS::Region
       CidrBlock:
         !Select [2, !Cidr [!Sub "${VPCCIDR}", 12, !Sub "${VPCSubnetMask}"]]
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-subnet-c"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PublicSubnetCNACLAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
@@ -266,11 +289,15 @@ Resources:
               Ref: AWS::Region
       CidrBlock:
         !Select [4, !Cidr [!Sub "${VPCCIDR}", 12, !Sub "${VPCSubnetMask}"]]
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-a"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PrivateSubnetANACLAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
@@ -298,11 +325,15 @@ Resources:
               Ref: AWS::Region
       CidrBlock:
         !Select [5, !Cidr [!Sub "${VPCCIDR}", 12, !Sub "${VPCSubnetMask}"]]
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-b"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PrivateSubnetBNACLAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
@@ -330,11 +361,15 @@ Resources:
               Ref: AWS::Region
       CidrBlock:
         !Select [6, !Cidr [!Sub "${VPCCIDR}", 12, !Sub "${VPCSubnetMask}"]]
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-subnet-c"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PrivateSubnetCNACLAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
@@ -360,6 +395,10 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-internet-gateway"
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -372,9 +411,15 @@ Resources:
   NATGatewayEIPA:
     Type: AWS::EC2::EIP
     Condition: IsNATAEnabled
-    DependsOn: VPC
     Properties:
-      Domain: VPC
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-private-subnet-c"
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   NATGatewayA:
     Type: AWS::EC2::NatGateway
@@ -382,11 +427,15 @@ Resources:
     DependsOn:
       - NATGatewayEIPA
     Properties:
+      AllocationId: !Sub "${NATGatewayEIPA.AllocationId}"
+      SubnetId: !Ref PublicSubnetA
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-nat-gateway-a"
-      AllocationId: !Sub "${NATGatewayEIPA.AllocationId}"
-      SubnetId: !Ref PublicSubnetA
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PrivateDefaultRouteA:
     Type: AWS::EC2::Route
@@ -399,9 +448,13 @@ Resources:
   NATGatewayEIPB:
     Type: AWS::EC2::EIP
     Condition: IsNATBEnabled
-    DependsOn: VPC
     Properties:
-      Domain: VPC
+      Domain: vpc
+      Tags:
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   NATGatewayB:
     Type: AWS::EC2::NatGateway
@@ -409,11 +462,15 @@ Resources:
     DependsOn:
       - NATGatewayEIPB
     Properties:
+      AllocationId: !Sub "${NATGatewayEIPB.AllocationId}"
+      SubnetId: !Ref PublicSubnetB
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-nat-gateway-b"
-      AllocationId: !Sub "${NATGatewayEIPB.AllocationId}"
-      SubnetId: !Ref PublicSubnetB
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PrivateDefaultRouteB:
     Type: AWS::EC2::Route
@@ -434,9 +491,13 @@ Resources:
   NATGatewayEIPC:
     Type: AWS::EC2::EIP
     Condition: IsNATCEnabled
-    DependsOn: VPC
     Properties:
-      Domain: VPC
+      Domain: vpc
+      Tags:
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   NATGatewayC:
     Type: AWS::EC2::NatGateway
@@ -444,11 +505,15 @@ Resources:
     DependsOn:
       - NATGatewayEIPC
     Properties:
+      AllocationId: !Sub "${NATGatewayEIPC.AllocationId}"
+      SubnetId: !Ref PublicSubnetC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-nat-gateway-c"
-      AllocationId: !Sub "${NATGatewayEIPC.AllocationId}"
-      SubnetId: !Ref PublicSubnetC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   # Create routes in route tables
 
@@ -471,11 +536,15 @@ Resources:
   PublicRouteTableA:
     Type: AWS::EC2::RouteTable
     Properties:
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-a"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PublicDefaultRouteA:
     Type: AWS::EC2::Route
@@ -490,11 +559,15 @@ Resources:
   PublicRouteTableB:
     Type: AWS::EC2::RouteTable
     Properties:
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-b"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PublicDefaultRouteB:
     Type: AWS::EC2::Route
@@ -509,11 +582,15 @@ Resources:
   PublicRouteTableC:
     Type: AWS::EC2::RouteTable
     Properties:
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-public-route-table-c"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PublicDefaultRouteC:
     Type: AWS::EC2::Route
@@ -528,29 +605,41 @@ Resources:
   PrivateRouteTableA:
     Type: AWS::EC2::RouteTable
     Properties:
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-a"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PrivateRouteTableB:
     Type: AWS::EC2::RouteTable
     Properties:
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-b"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   PrivateRouteTableC:
     Type: AWS::EC2::RouteTable
     Properties:
+      VpcId:
+        Ref: VPC
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-private-route-table-c"
-      VpcId:
-        Ref: VPC
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   # Enable VPC flow logs and create S3 bucket to store logs
 
@@ -564,6 +653,8 @@ Resources:
           Value: !Sub "${VPCFlowLogsS3Bucket}"
         - Key: VpcId
           Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   FlowLog:
     Type: AWS::EC2::FlowLog
@@ -574,6 +665,13 @@ Resources:
       ResourceId: !Ref VPC
       ResourceType: VPC
       TrafficType: ALL
+      Tags:
+        - Key: Name
+          Value: !Sub "${VPCFlowLogsS3Bucket}"
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
     DependsOn: VPCFlowLogsS3BucketObject
 
   # Create security group
@@ -587,6 +685,10 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-webserver-sg"
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   WebserverSGIngressTcp22:
     Type: AWS::EC2::SecurityGroupIngress
@@ -625,6 +727,11 @@ Resources:
     Type: 'AWS::EC2::KeyPair'
     Properties:
       KeyName: WebServerKeyPair
+      Tags:
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   ElasticLoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
@@ -644,13 +751,14 @@ Resources:
         - !Ref PrivateSubnetA
         - !Ref PrivateSubnetB
         - !Ref PrivateSubnetC
+      Tags:
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
 
   WebServerGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
-    # CreationPolicy:
-    #   ResourceSignal:
-    #     Timeout: PT15M
-    #     Count: '1'
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: '1'
@@ -667,7 +775,14 @@ Resources:
       MaxSize: '1'
       DesiredCapacity: '1'
       LoadBalancerNames: [!Ref 'ElasticLoadBalancer']
-
+      Tags:
+        - Key: VpcId
+          PropagateAtLaunch: true
+          Value: !Ref VPC
+        - Key: env
+          PropagateAtLaunch: true
+          Value: 'dev'
+  
   WebServerInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -690,6 +805,11 @@ Resources:
           - Effect: Allow
             Action: ['elasticloadbalancing:DescribeInstanceHealth']
             Resource: '*'
+      Tags:
+        - Key: VpcId
+          Value: !Ref VPC
+        - Key: env
+          Value: 'dev'
             
   # WebServerInstance:
   #   Type: AWS::EC2::Instance
@@ -775,6 +895,13 @@ Resources:
                 - - 'aws s3 cp '
                   - 's3://belong-coding-challenge/belong-test.html'
                   - '/var/www/html/index.html'
+        verify_index_html:
+          commands:
+            check_index_html:
+              command: !Join
+                - ''
+                - - 'curl'
+                  - 'http://localhost'
         verify_instance_health:
           commands:
             ELBHealthCheck:
@@ -806,12 +933,6 @@ Resources:
           '         --resource WebServerGroup ', '         --region ', !Ref 'AWS::Region',
           '
             ']
-      # UserData: !Base64
-      #   'Fn::Sub': |
-      #     #!/bin/bash -xe
-      #     yum update -y aws-cfn-bootstrap
-      #     /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource WebServerInstance --configsets setup --region ${AWS::Region}
-      #     /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WebServerInstance --region ${AWS::Region}
 
 Outputs:
 
@@ -911,7 +1032,3 @@ Outputs:
       Ref: NATGatewayEIPC
     Export:
       Name: !Sub '${Environment}-NAT-gateway-elastic-IP-C'
-  # PublicDNS :
-  #   Value: !GetAtt
-  #     - WebServerInstance
-  #     - PublicDnsName

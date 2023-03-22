@@ -33,19 +33,21 @@ Parameters:
 
 Resources:
 
-  # GithubOidc:
-  #   Type: AWS::IAM::OIDCProvider
-  #   DeletionPolicy: Retain
-  #   Properties:
-  #     Url: !Sub "${OidcProviderEndpoint}"
-  #     ThumbprintList:
-  #       - !Sub ${GitHubOIDCThumbprint}
-  #     ClientIdList:
-  #       - !Sub ${OIDCAudience}
+  GithubOidc:
+    Type: AWS::IAM::OIDCProvider
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Url: !Sub "${OidcProviderEndpoint}"
+      ThumbprintList:
+        - !Sub ${GitHubOIDCThumbprint}
+      ClientIdList:
+        - !Sub ${OIDCAudience}
 
   AssumeGitHubActionsDeployerRole:
     Type: AWS::IAM::Role
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       RoleName: AssumeGitHubActionsDeployerRole
       AssumeRolePolicyDocument:
@@ -64,6 +66,7 @@ Resources:
   AssumeGitHubActionsDeployerRolePolicy:
     Type: AWS::IAM::Policy
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       PolicyName: AssumeGitHubActionsDeployerRolePolicy
       Roles:
@@ -77,11 +80,11 @@ Resources:
               - "sts:TagSession"
             Resource:
               - !Sub "arn:aws:iam::${AccountID}:role/GitHubActionsDeployerRole"
-    DependsOn: AssumeGitHubActionsDeployerRole
 
   GitHubActionsDeployerRole:
     Type: AWS::IAM::Role
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       RoleName: GitHubActionsDeployerRole
       AssumeRolePolicyDocument:
@@ -93,11 +96,11 @@ Resources:
             Action:
               - "sts:AssumeRole"
               - "sts:TagSession"
-    DependsOn: AssumeGitHubActionsDeployerRole
 
   GitHubActionsDeployerRolePolicy:
     Type: AWS::IAM::Policy
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       PolicyName: GitHubActionsDeployerRolePolicy
       Roles:
@@ -109,4 +112,3 @@ Resources:
             Action:
               - "*"
             Resource: "*"
-    DependsOn: GitHubActionsDeployerRole
