@@ -394,10 +394,10 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-internet-gateway"
-        - Key: VpcId
-          Value: !Ref VPC
         - Key: env
           Value: 'dev'
+    DependsOn:
+      - VPC
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -759,6 +759,8 @@ Resources:
           Value: !Ref VPC
         - Key: env
           Value: 'dev'
+    DependsOn:
+      - AttachGateway
 
   # Create ASG
 
