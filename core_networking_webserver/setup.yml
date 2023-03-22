@@ -1,10 +1,10 @@
 ---
 #====================================================================================================
-# Description : Platform Engineering Coding Challenge - Setup core networking and webserver
+# Description : Setup core networking and webserver
 #====================================================================================================
 
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Platform Engineering Coding Challenge"
+Description: "Setup core networking and webserver"
 
 # Parameters
 

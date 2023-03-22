@@ -17,35 +17,35 @@ jobs:
 
     steps:
 
-      # - name: Check user for team affiliation
-      #   uses: tspascoal/get-user-teams-membership@v2
-      #   id: checkTeamAffiliation
-      #   with:
-      #     GITHUB_TOKEN: ${{ secrets.PAT }}
-      #     username: ${{ github.actor }}
-      #     team: Dev-Deployers
+      - name: Check user for team affiliation
+        uses: tspascoal/get-user-teams-membership@v2
+        id: checkTeamAffiliation
+        with:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          username: ${{ github.actor }}
+          team: Dev-Deployers
 
-      # - name: Stop workflow if user is not a member of the Deployers Team
-      #   if: ${{ steps.checkTeamAffiliation.outputs.isTeamMember == 'false' }}
-      #   run: |
-      #     echo "User does not have the necessary permissions to run this job."
-      #     exit 1
+      - name: Stop workflow if user is not a member of the Deployers Team
+        if: ${{ steps.checkTeamAffiliation.outputs.isTeamMember == 'false' }}
+        run: |
+          echo "User does not have the necessary permissions to run this job."
+          exit 1
 
       - name: Check out code
         uses: actions/checkout@v2
 
-      # - name: Checkout actions-oidc-debugger
-      #   uses: actions/checkout@v3
-      #   with:
-      #     repository: github/actions-oidc-debugger
-      #     ref: main
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     path: ./.github/actions/actions-oidc-debugger
+      - name: Checkout actions-oidc-debugger
+        uses: actions/checkout@v3
+        with:
+          repository: github/actions-oidc-debugger
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./.github/actions/actions-oidc-debugger
 
-      # - name: Debug OIDC Claims
-      #   uses: ./.github/actions/actions-oidc-debugger
-      #   with:
-      #     audience: sts.amazonaws.com
+      - name: Debug OIDC Claims
+        uses: ./.github/actions/actions-oidc-debugger
+        with:
+          audience: sts.amazonaws.com
 
       - name: CFN Lint for the cloudformation template
         uses: scottbrenner/cfn-lint-action@v2
